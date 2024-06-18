@@ -35,7 +35,8 @@ function playRound(humanChoice, computerChoice, gameState){
 
     } else if (humanChoice == 'scissors'){
         if (computerChoice == 'paper') humanWins = true;
-    }
+    
+    } 
 
     setTimeout(function wrapper(){
         if (humanWins) {
@@ -46,7 +47,7 @@ function playRound(humanChoice, computerChoice, gameState){
         //UI Update
         playerCard.innerHTML = `${humanChoice}`;
         computerCard.innerHTML = `${computerChoice}`;
-    }, 10);
+    }, 100);
 
 
     if (humanWins) {
@@ -64,36 +65,58 @@ function playRound(humanChoice, computerChoice, gameState){
     return gameState;
 }
 
-function getHumanChoice(){
-    let inputValid = false;
-    let choice = '';
 
-    while(!inputValid){
-        choice = prompt("Choose Rock Paper or Scissors: ", "Paper");
+function getHumanChoice(e){
+    let choice;
+    const buttonClicked = e.target.id;
+    // console.log(e.target.id);
 
-        if (choice || false){                
-            choice = choice.toLowerCase();
-            switch(choice.trim()){
-                case 'rock': choice = 'rock';
-                    inputValid = true;
-                    break;
-                case 'paper': choice = 'paper';
-                    inputValid = true;
-                    break;
-                case 'scissors': choice = 'scissors';
-                    inputValid = true;
-                    break;
-                default:
-                    console.log(`${choice} was given, INPUT INVALID!`);
-            }
-        }
-        else {
-            console.log("Please enter a choice, try again.");
-        }
+    switch(buttonClicked){
+        case 'rock':
+            choice = 'rock';
+            break;
+        case 'paper':
+            choice = 'paper';
+            break;
+        case 'scissors':
+            choice = 'scissors';
+            break;
+        default:
+            choice = null;
+            break;
     }
-
     return choice;
 }
+    
+    // let inputValid = false;
+    // let choice = '';
+
+    // while(!inputValid){
+    //     choice = prompt("Choose Rock Paper or Scissors: ", "Paper");
+
+    //     if (choice || false){                
+    //         choice = choice.toLowerCase();
+    //         switch(choice.trim()){
+    //             case 'rock': choice = 'rock';
+    //                 inputValid = true;
+    //                 break;
+    //             case 'paper': choice = 'paper';
+    //                 inputValid = true;
+    //                 break;
+    //             case 'scissors': choice = 'scissors';
+    //                 inputValid = true;
+    //                 break;
+    //             default:
+    //                 console.log(`${choice} was given, INPUT INVALID!`);
+    //         }
+    //     }
+    //     else {
+    //         console.log("Please enter a choice, try again.");
+    //     }
+    // }
+
+    // return choice;
+// }
 
 function getComputerChoice(){
     //Math.random 0-3.33 is Rock, 0.34 - 0.66 is Paper, 0.67 - 0.99 is Scissors
@@ -102,12 +125,57 @@ function getComputerChoice(){
     return choice;
 }
 
+function checkGameOver(gameState, {winnerFound, humanScore, computerScore}){
+    humanScore = gameState.human.value;
+    computerScore = gameState.computer.value;
+    console.log(`Human: ${humanScore}, Computer: ${computerScore}\n`);
+
+    //End Game condition:
+    if (humanScore >= 5 || computerScore >= 5) winnerFound = true;
+    if (winnerFound){        
+        const winner = humanScore>computerScore ? 'human' : 'computer';
+        const gameOver = new CustomEvent('gameOver', {detail: winner});
+        if (humanScore>computerScore){
+            console.log(`END GAME
+                Human is winner!`);
+        } else {
+            console.log(`END GAME
+                Computer is winner!`);
+        } 
+        
+        buttons.dispatchEvent(gameOver);
+        
+        // buttons.removeEventListener('click', humanClickButton);
+    }
+
+    
+}
+
+const buttons = document.querySelector(".buttons");
+
+const humanClickButton = function a(gameState, {winnerFound, humanScore, computerScore}){
+    const initRound = function b(e){
+        const humanChoice = getHumanChoice(e);
+        if (humanChoice){
+            const computerChoice = getComputerChoice();
+            gameState = playRound(humanChoice, computerChoice, gameState);
+            checkGameOver(gameState, {winnerFound, humanScore, computerScore});
+        }
+
+    };
+    return initRound;
+
+}
+
 
 function playGame(){
     ///Does playRound, until one player wins 5 rounds.
-    let winnerFound = false;
-    let humanScore =0;
-    let computerScore=0;
+    
+    const lazyState = {
+        winnerFound : false,
+        humanScore :0,
+        computerScore: 0
+    }
     let gameState = {
         human:{
             value: 0
@@ -117,30 +185,18 @@ function playGame(){
         }
     };
 
+    let tests = humanClickButton(gameState, {...lazyState});
+    buttons.addEventListener('click', tests );
+    
 
-    while(!winnerFound){
-        let humanChoice = getHumanChoice();
-        let computerChoice = getComputerChoice();
-        gameState = playRound(humanChoice, computerChoice, gameState);
-
-        humanScore = gameState.human.value;
-        computerScore = gameState.computer.value;
-        console.log(`Human: ${humanScore}, Computer: ${computerScore}\n`);
-        //End Game condition:
-        if (humanScore >= 5 || computerScore >= 5) winnerFound = true;
-    }
-
-    if (humanScore>computerScore){
-        console.log(`END GAME
-            Human is winner!`);
-    } else {
-        console.log(`END GAME
-            Computer is winner!`);
-    }
+    buttons.addEventListener('gameOver', () => {
+        console.log('trying to rmoev');
+        buttons.removeEventListener('click', tests);
+    });
     
 }
 
 
-
+//TODO: Popup modal when win, restart game when modal closed.
 
 playGame();
